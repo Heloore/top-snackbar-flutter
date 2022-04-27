@@ -16,21 +16,22 @@ OverlayEntry? _previousEntry;
 ///
 /// The [displayDuration] argument is used to specify duration displaying
 ///
-/// The [additionalTopPadding] argument is used to specify amount of top
+/// The [additionalStartPadding] argument is used to specify amount of top
 /// padding that will be added for SafeArea values
 ///
-/// The [onTap] callback of [TopSnackBar]
+/// The [onTap] callback of [CustomPositionSnackBar]
 ///
 /// The [overlayState] argument is used to add specific overlay state.
 /// If you will not pass it, it will try to get the current overlay state from
 /// passed [BuildContext]
-void showTopSnackBar(
+void showCustomPositionSnackBar(
   BuildContext context,
   Widget child, {
+  bool isTop = true,
   Duration showOutAnimationDuration = const Duration(milliseconds: 1200),
   Duration hideOutAnimationDuration = const Duration(milliseconds: 550),
   Duration displayDuration = const Duration(milliseconds: 3000),
-  double additionalTopPadding = 16.0,
+  double additionalStartPadding = 16,
   VoidCallback? onTap,
   OverlayState? overlayState,
   double leftPadding = 16,
@@ -40,8 +41,9 @@ void showTopSnackBar(
   late OverlayEntry overlayEntry;
   overlayEntry = OverlayEntry(
     builder: (context) {
-      return TopSnackBar(
+      return CustomPositionSnackBar(
         child: child,
+        isTop: isTop,
         onDismissed: () {
           overlayEntry.remove();
           _previousEntry = null;
@@ -49,7 +51,7 @@ void showTopSnackBar(
         showOutAnimationDuration: showOutAnimationDuration,
         hideOutAnimationDuration: hideOutAnimationDuration,
         displayDuration: displayDuration,
-        additionalTopPadding: additionalTopPadding,
+        additionalStartPadding: additionalStartPadding,
         onTap: onTap,
         leftPadding: leftPadding,
         rightPadding: rightPadding,
@@ -63,43 +65,44 @@ void showTopSnackBar(
 }
 
 /// Widget that controls all animations
-class TopSnackBar extends StatefulWidget {
+class CustomPositionSnackBar extends StatefulWidget {
   final Widget child;
+  final bool isTop;
   final VoidCallback onDismissed;
   final showOutAnimationDuration;
   final hideOutAnimationDuration;
   final displayDuration;
-  final additionalTopPadding;
+  final additionalStartPadding;
   final VoidCallback? onTap;
   final double leftPadding;
   final double rightPadding;
 
-  TopSnackBar({
+  CustomPositionSnackBar({
     Key? key,
     required this.child,
+    required this.isTop,
     required this.onDismissed,
     required this.showOutAnimationDuration,
     required this.hideOutAnimationDuration,
     required this.displayDuration,
-    required this.additionalTopPadding,
+    required this.additionalStartPadding,
     this.onTap,
     this.leftPadding = 16,
     this.rightPadding = 16,
   }) : super(key: key);
 
   @override
-  _TopSnackBarState createState() => _TopSnackBarState();
+  _CustomPositionSnackBarState createState() => _CustomPositionSnackBarState();
 }
 
-class _TopSnackBarState extends State<TopSnackBar>
-    with SingleTickerProviderStateMixin {
+class _CustomPositionSnackBarState extends State<CustomPositionSnackBar> with SingleTickerProviderStateMixin {
   late Animation offsetAnimation;
   late AnimationController animationController;
-  double? topPosition;
+  double? startPosition;
 
   @override
   void initState() {
-    topPosition = widget.additionalTopPadding;
+    startPosition = widget.additionalStartPadding;
     _setupAndStartAnimation();
     super.initState();
   }
@@ -118,7 +121,7 @@ class _TopSnackBarState extends State<TopSnackBar>
     );
 
     Tween<Offset> offsetTween = Tween<Offset>(
-      begin: Offset(0.0, -1.0),
+      begin: Offset(0.0, widget.isTop ? -1.0 : 1.0),
       end: Offset(0.0, 0.0),
     );
 
@@ -134,7 +137,7 @@ class _TopSnackBarState extends State<TopSnackBar>
           if (mounted) {
             animationController.reverse();
             setState(() {
-              topPosition = 0;
+              startPosition = 0;
             });
           }
         }
@@ -154,7 +157,8 @@ class _TopSnackBarState extends State<TopSnackBar>
     return AnimatedPositioned(
       duration: widget.hideOutAnimationDuration * 1.5,
       curve: Curves.linearToEaseOut,
-      top: topPosition,
+      top: widget.isTop ? startPosition : null,
+      bottom: widget.isTop ? null : startPosition,
       left: widget.leftPadding,
       right: widget.rightPadding,
       child: SlideTransition(
